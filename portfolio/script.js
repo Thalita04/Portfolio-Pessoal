@@ -197,10 +197,10 @@
     // Geometria Central: Escultura Crystalline / Cyber Icosaedro Esculpido
     const coreGeometry = new THREE.IcosahedronGeometry(1.85, 24);
     
-    // Material Físico Avançado com Acabamento Metálico e Iluminação Violeta
+    // Material Físico Avançado com Acabamento Metálico e Iluminação Rosa Cibernética
     const coreMaterial = new THREE.MeshPhysicalMaterial({
-      color: 0x1A122B,
-      emissive: 0x120924,
+      color: 0x220D1D,
+      emissive: 0x180514,
       roughness: 0.12,
       metalness: 0.92,
       clearcoat: 1.0,
@@ -215,10 +215,10 @@
     // Anel Orbital Wireframe para estética de precisão tecnológica
     const wireframeGeometry = new THREE.IcosahedronGeometry(2.1, 1);
     const wireframeMaterial = new THREE.MeshBasicMaterial({
-      color: 0x8B5CF6,
+      color: 0xFF2A85,
       wireframe: true,
       transparent: true,
-      opacity: 0.22
+      opacity: 0.28
     });
     const wireframeMesh = new THREE.Mesh(wireframeGeometry, wireframeMaterial);
     sceneGroup.add(wireframeMesh);
@@ -241,29 +241,29 @@
     particleGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
 
     const particleMaterial = new THREE.PointsMaterial({
-      color: 0xB58CFF,
+      color: 0xFF70BA,
       size: 0.045,
       transparent: true,
-      opacity: 0.75,
+      opacity: 0.85,
       blending: THREE.AdditiveBlending
     });
 
     const particleSystem = new THREE.Points(particleGeometry, particleMaterial);
     sceneGroup.add(particleSystem);
 
-    // Iluminação Tri-Point com Assinatura Cromática Roxa
-    const ambientLight = new THREE.AmbientLight(0x281944, 1.2);
+    // Iluminação Tri-Point com Assinatura Cromática Rosa Cibernética
+    const ambientLight = new THREE.AmbientLight(0x380F29, 1.2);
     scene.add(ambientLight);
 
-    const light1 = new THREE.PointLight(0x8B5CF6, 4.0, 20);
+    const light1 = new THREE.PointLight(0xFF1493, 4.2, 20);
     light1.position.set(4, 3, 5);
     scene.add(light1);
 
-    const light2 = new THREE.PointLight(0xB58CFF, 3.2, 20);
+    const light2 = new THREE.PointLight(0xFF69B4, 3.4, 20);
     light2.position.set(-4, -3, 3);
     scene.add(light2);
 
-    const rimLight = new THREE.DirectionalLight(0xF5F0FF, 1.0);
+    const rimLight = new THREE.DirectionalLight(0xFFE4F0, 1.0);
     rimLight.position.set(0, 5, -4);
     scene.add(rimLight);
 
@@ -346,43 +346,179 @@
     window.addEventListener('scroll', handleScrollFade, { passive: true });
     handleScrollFade();
 
-    // Ajuste dinâmico de redimensionamento de tela
+    // Interação tátil no mobile (Touch Drag suave no hero)
+    let isTouching = false;
+
+    window.addEventListener('touchstart', (e) => {
+      if (e.touches && e.touches.length === 1) {
+        isTouching = true;
+        const touchX = e.touches[0].clientX;
+        const touchY = e.touches[0].clientY;
+        state.targetMouseX = ((touchX / window.innerWidth) - 0.5) * 2;
+        state.targetMouseY = ((touchY / window.innerHeight) - 0.5) * 2;
+      }
+    }, { passive: true });
+
+    window.addEventListener('touchmove', (e) => {
+      if (!isTouching || !e.touches || e.touches.length !== 1) return;
+      const touchX = e.touches[0].clientX;
+      const touchY = e.touches[0].clientY;
+      state.targetMouseX = ((touchX / window.innerWidth) - 0.5) * 2;
+      state.targetMouseY = ((touchY / window.innerHeight) - 0.5) * 2;
+    }, { passive: true });
+
+    window.addEventListener('touchend', () => {
+      isTouching = false;
+      state.targetMouseX = 0;
+      state.targetMouseY = 0;
+    }, { passive: true });
+
+    // Ajuste dinâmico de redimensionamento de tela otimizado para mobile e desktop
+    let lastWidth = window.innerWidth;
+    let lastHeight = window.innerHeight;
+
     window.addEventListener('resize', () => {
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.position.z = window.innerWidth < 768 ? 7.5 : 5.8;
-      camera.position.x = window.innerWidth < 768 ? 0 : -0.85;
+      const currentWidth = window.innerWidth;
+      const currentHeight = window.innerHeight;
+      const widthChanged = currentWidth !== lastWidth;
+      const heightDifference = Math.abs(currentHeight - lastHeight);
+
+      // No mobile, ignora variações pequenas de altura causadas pela barra de navegação do browser
+      if (!widthChanged && heightDifference < 90) {
+        return;
+      }
+
+      lastWidth = currentWidth;
+      lastHeight = currentHeight;
+
+      camera.aspect = currentWidth / currentHeight;
+      camera.position.z = currentWidth < 768 ? 7.5 : 5.8;
+      camera.position.x = currentWidth < 768 ? 0 : -0.85;
       camera.updateProjectionMatrix();
 
-      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setSize(currentWidth, currentHeight);
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     });
   }
 
   // --------------------------------------------------------------------------
-  // 7. MENU MOBILE RESPONSIVO
+  // 7. MENU MOBILE RESPONSIVO & ACESSIBILIDADE
   // --------------------------------------------------------------------------
   function initMobileMenu() {
     const toggle = document.getElementById('mobile-toggle');
     const navMenu = document.getElementById('nav-menu');
-    const navLinks = document.querySelectorAll('.nav-link');
+    const navLinks = document.querySelectorAll('.nav-link, .mobile-drawer-contact, .mobile-drawer-github');
 
     if (!toggle || !navMenu) return;
 
-    toggle.addEventListener('click', () => {
-      const isOpen = navMenu.classList.toggle('is-open');
-      toggle.setAttribute('aria-expanded', isOpen);
+    function closeMenu() {
+      navMenu.classList.remove('is-open');
+      toggle.classList.remove('is-active');
+      toggle.setAttribute('aria-expanded', 'false');
+      document.body.classList.remove('menu-open');
+    }
+
+    function openMenu() {
+      navMenu.classList.add('is-open');
+      toggle.classList.add('is-active');
+      toggle.setAttribute('aria-expanded', 'true');
+      document.body.classList.add('menu-open');
+    }
+
+    toggle.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isOpen = navMenu.classList.contains('is-open');
+      if (isOpen) {
+        closeMenu();
+      } else {
+        openMenu();
+      }
     });
 
     navLinks.forEach((link) => {
       link.addEventListener('click', () => {
-        navMenu.classList.remove('is-open');
-        toggle.setAttribute('aria-expanded', 'false');
+        closeMenu();
       });
+    });
+
+    // Fechar ao pressionar a tecla Escape
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && navMenu.classList.contains('is-open')) {
+        closeMenu();
+      }
+    });
+
+    // Fechar ao redimensionar de mobile para desktop
+    window.addEventListener('resize', () => {
+      if (window.innerWidth > 768 && navMenu.classList.contains('is-open')) {
+        closeMenu();
+      }
     });
   }
 
   // --------------------------------------------------------------------------
-  // 8. INICIALIZAÇÃO GERAL
+  // 8. HEADER GLASSMORPHIC NO SCROLL (DESKTOP & MOBILE)
+  // --------------------------------------------------------------------------
+  function initHeaderScroll() {
+    const header = document.getElementById('site-header');
+    if (!header) return;
+
+    function handleScroll() {
+      const scrollY = window.pageYOffset || document.documentElement.scrollTop;
+      if (scrollY > 35) {
+        header.classList.add('is-scrolled');
+      } else {
+        header.classList.remove('is-scrolled');
+      }
+    }
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll();
+  }
+
+  // --------------------------------------------------------------------------
+  // 9. SCROLL SPY (INDICADOR DE SEÇÃO ATIVA)
+  // --------------------------------------------------------------------------
+  function initScrollSpy() {
+    const sections = document.querySelectorAll('section[id]');
+    const navLinks = document.querySelectorAll('.nav-menu .nav-link');
+
+    if (!sections.length || !navLinks.length) return;
+
+    function updateActiveLink() {
+      const scrollY = window.pageYOffset || document.documentElement.scrollTop;
+      const scrollMiddle = scrollY + window.innerHeight * 0.35;
+
+      let currentSectionId = '';
+
+      sections.forEach((section) => {
+        const top = section.offsetTop;
+        const height = section.offsetHeight;
+        if (scrollMiddle >= top && scrollMiddle < top + height) {
+          currentSectionId = section.getAttribute('id');
+        }
+      });
+
+      if (!currentSectionId && sections.length) {
+        currentSectionId = sections[0].getAttribute('id');
+      }
+
+      navLinks.forEach((link) => {
+        const href = link.getAttribute('href');
+        if (href === `#${currentSectionId}`) {
+          link.classList.add('is-active');
+        } else {
+          link.classList.remove('is-active');
+        }
+      });
+    }
+
+    window.addEventListener('scroll', updateActiveLink, { passive: true });
+    updateActiveLink();
+  }
+
+  // --------------------------------------------------------------------------
+  // 10. INICIALIZAÇÃO GERAL
   // --------------------------------------------------------------------------
   window.addEventListener('DOMContentLoaded', () => {
     initOpeningSequence();
@@ -391,6 +527,8 @@
     initParallax();
     initThreeScene();
     initMobileMenu();
+    initHeaderScroll();
+    initScrollSpy();
   });
 
 })();
